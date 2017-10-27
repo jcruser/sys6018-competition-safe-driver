@@ -1,5 +1,6 @@
 library(readr)
-
+library(boot)
+library(dplyr)
 
 #Read in data
 
@@ -78,6 +79,19 @@ qqline(sigvalsresid2)
 yhat2 <- fitted(sigvals2.lm)
 plot(yhat2,sigvalsresid2)
 ##have two parallel lines
+
+
+
+############## Log Regression #######################
+
+basic.glm = glm(target~ps_ind_03 + ps_ind_04_cat + ps_ind_05_cat + ps_ind_07_bin + ps_ind_08_bin + ps_ind_15 + ps_ind_16_bin+ 
+                  ps_ind_17_bin + ps_ind_18_bin + ps_reg_02 + ps_car_03_cat + ps_car_07_cat + ps_car_11 + ps_car_12+ps_car_13, data = train, family='binomial')
+
+summary(basic.glm)
+
+## apply model to test data
+preds_log = predict(basic.glm, newdata = test, se=TRUE)
+preds <- rep(0,892816)  # Initialize prediction vector
 
 
 ### apply model to test data
