@@ -90,8 +90,8 @@ basic.glm = glm(target~ps_ind_03 + ps_ind_04_cat + ps_ind_05_cat + ps_ind_07_bin
 summary(basic.glm)
 
 ## apply model to test data
-preds_log = predict(basic.glm, newdata = test, se=TRUE)
-preds <- rep(0,892816)  # Initialize prediction vector
+preds_log = predict(basic.glm, test, type = "response")
+preds_log[1:10]
 
 
 ### apply model to test data
