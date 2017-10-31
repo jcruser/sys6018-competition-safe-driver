@@ -6,7 +6,7 @@ library(dplyr)
 
 train <- read.csv("train.csv")
 test <- read.csv("test.csv")
-sample <- read.csv("sample_submission.csv")
+#sample <- read.csv("sample_submission.csv")
 
 #Treat the categorical vars as factors
 cats <- names(train)[grepl('_cat$', colnames(train))]
@@ -20,8 +20,8 @@ apply(test[,cats],2,as.factor)
 apply(test[,bins],2,as.factor)
 
 #Treat missing values
-train[train==-1] <- NA
-test[test==-1] <- NA
+#train[train==-1] <- NA
+#test[test==-1] <- NA
 
 basic.lm <- lm(target~.-id,data=train)
 summary(basic.lm)
@@ -90,38 +90,47 @@ basic.glm = glm(target~ps_ind_03 + ps_ind_04_cat + ps_ind_05_cat + ps_ind_07_bin
 summary(basic.glm)
 
 ## apply model to test data
-preds_log = predict(basic.glm, test, type = "response")
-preds_log[1:10]
+probs_log = predict(basic.glm, test, type = "response")
+probs_log[1:10]
+target <- ifelse(probs_log > 0.5, 1, 0)
+target [1:10]
 
+#target <- rep(0,892816)  # Initialize prediction vector
+#target[probs_log>0.5] <- 1 
 
 ### apply model to test data
-probs <- predict(sigvals2.lm, newdata = test, type = "response")
-preds <- rep(0,892816)  # Initialize prediction vector
-preds[probs>0.5] <- 1 # p>0.5 -> 1
-mypreds <- cbind(as.numeric(sample$id),preds)
-mypreds
+
+log_preds <- cbind(as.integer(test$id),target)
+log_preds[1:10]
+
+colnames(log_preds)[1] <- "id"
+
+
+#write to csv
+write.table(log_preds, file = "c:/Users/Jennifer/Desktop/SafeDriveLog.csv", row.names=F, col.names=T, sep=",")
+
 
 ###### apply gini index function ######
 #' Calculates unnormalized Gini index from ground truth and predicted probabilities.
 #' @param ground.truth Ground-truth scalar values (e.g., 0 and 1)
 #' @param predicted.probabilities Predicted probabilities for the items listed in ground.truth
 #' @return Unnormalized Gini index.
-unnormalized.gini.index = function(ground.truth, predicted.probabilities) {
+unnormalized.gini.index = function(target, probs_log) {
   
-  if (length(ground.truth) !=  length(predicted.probabilities))
+  if (length(target) !=  length(probs_log))
   {
     stop("Actual and Predicted need to be equal lengths!")
   }
   
   # arrange data into table with columns of index, predicted values, and actual values
-  gini.table = data.frame(index = c(1:length(ground.truth)), predicted.probabilities, ground.truth)
+  gini.table = data.frame(index = c(1:length(target)), probs_log, target)
   
   # sort rows in decreasing order of the predicted values, breaking ties according to the index
-  gini.table = gini.table[order(-gini.table$predicted.probabilities, gini.table$index), ]
+  gini.table = gini.table[order(-gini.table$probs_log, gini.table$index), ]
   
   # get the per-row increment for positives accumulated by the model 
-  num.ground.truth.positivies = sum(gini.table$ground.truth)
-  model.percentage.positives.accumulated = gini.table$ground.truth / num.ground.truth.positivies
+  num.ground.truth.positivies = sum(gini.table$target)
+  model.percentage.positives.accumulated = gini.table$target / num.ground.truth.positivies
   
   # get the per-row increment for positives accumulated by a random guess
   random.guess.percentage.positives.accumulated = 1 / nrow(gini.table)
@@ -136,10 +145,10 @@ unnormalized.gini.index = function(ground.truth, predicted.probabilities) {
 #' @param ground.truth Ground-truth scalar values (e.g., 0 and 1)
 #' @param predicted.probabilities Predicted probabilities for the items listed in ground.truth
 #' @return Normalized Gini index, accounting for theoretical optimal.
-normalized.gini.index = function(ground.truth, predicted.probabilities) {
+normalized.gini.index = function(target, probs_log) {
   
-  model.gini.index = unnormalized.gini.index(ground.truth, predicted.probabilities)
-  optimal.gini.index = unnormalized.gini(ground.truth, ground.truth)
+  model.gini.index = unnormalized.gini.index(target, probs_log)
+  optimal.gini.index = unnormalized.gini(target, target)
   return(model.gini.index / optimal.gini.index)
 }
 
