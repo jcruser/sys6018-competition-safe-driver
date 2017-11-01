@@ -1,11 +1,14 @@
 library(readr)
 library (randomForest)
 library(ranger)
+library(leaps)
 
 #Read in data
 setwd("~/Desktop/SYS 6018/Kaggle competitions/safe driver")
 train <- read.csv("train.csv")
 test <- read.csv("test.csv")
+
+###### Data cleaning & Exploration ######
 
 #Treat the categorical vars as factors
 cats <- names(train)[grepl('_cat$', colnames(train))]
@@ -18,11 +21,60 @@ apply(test[,cats],2,as.factor)
 apply(test[,bins],2,as.factor)
 
 #Treat missing values
-train[train==-1] <- -1
-test[test==-1] <- -1
+#Calculate number of missing values in each column
+Missings <- apply(train,2,FUN=function(x) length(which(x==-1)))
+Missings
+#ps_car_03_cat, ps_car_05_cat and ps_reg_03 are missing too many values
+dropvar <- c("ps_car_03_cat","ps_car_05_cat","ps_reg_03")
+train.clean <- train[,-which(names(train) %in% dropvar)]
+Missings <- apply(train.clean,2,FUN=function(x) length(which(x==-1)))
+Missings
+#Impute missing values for ps_car_14,ps_car_07_cat and ps_ind_05_cat
+Mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+train.clean[train.clean$ps_car_14==-1,]$ps_car_14 = mean(train.clean[train.clean$ps_car_14!=-1,]$ps_car_14)
+train.clean[train.clean$ps_ind_05_cat==-1,]$ps_ind_05_cat = Mode(train.clean[train.clean$ps_ind_05_cat!=-1,]$ps_ind_05_cat)
+train.clean[train.clean$ps_car_07_cat==-1,]$ps_car_07_cat = Mode(train.clean[train.clean$ps_car_07_cat!=-1,]$ps_car_07_cat)
 
-
+#For computational power limits reasons, sample the training set
 train.sample <- train[sample(1:nrow(train),size=1000),]
+nrow(train[train$target==1,])
+nrow(train[train$target==0,])
+#Because the training set is inbalanced, make a balanced sample
+#with 50% positives(1) and 50% negatives(0)
+positives <- train.clean[train$target==1,]
+negatives <- train.clean[train$target==0,]
+set.seed(123)
+train.sample <- rbind(positives,negatives[sample(1:nrow(negatives),size=21694),])
+#Make a random validation set for model evaluation
+valid.sample <- train[sample(1:nrow(train),size=5000),]
+
+###### Stepwise: Log Reg ######
+glm.null <- glm(target~1, data=train.sample,family="binomial")
+glm.full <- glm(target~.-id, data=train.sample,family="binomial")
+#Stepwise selection with the training sample set
+step(glm.null, scope=list(lower=glm.null, upper=glm.full), direction="both")
+#Final formula:
+# Call:  glm(formula = target ~ ps_car_13 + ps_ind_17_bin + ps_ind_05_cat + 
+#              ps_reg_02 + ps_ind_15 + ps_ind_06_bin + ps_car_07_cat + ps_ind_09_bin + 
+#              ps_reg_01 + ps_car_14 + ps_car_12 + ps_car_11 + ps_car_15 + 
+#              ps_ind_02_cat + ps_ind_01 + ps_ind_16_bin + ps_car_09_cat + 
+#              ps_car_02_cat + ps_calc_08 + ps_calc_19_bin + ps_ind_04_cat + 
+#              ps_car_04_cat + ps_calc_16_bin, family = "binomial", data = train.sample)
+#Use the full training set on the final model
+glm.step <-  glm(formula = target ~ ps_car_13 + ps_ind_17_bin + ps_ind_05_cat + 
+             ps_reg_02 + ps_ind_15 + ps_ind_06_bin + ps_car_07_cat + ps_ind_09_bin + 
+             ps_reg_01 + ps_car_14 + ps_car_12 + ps_car_11 + ps_car_15 + 
+             ps_ind_02_cat + ps_ind_01 + ps_ind_16_bin + ps_car_09_cat + 
+             ps_car_02_cat + ps_calc_08 + ps_calc_19_bin + ps_ind_04_cat + 
+             ps_car_04_cat + ps_calc_16_bin, family = "binomial", data = train)
+probs.step <- predict(glm.step, newdata = test, type = "response")
+mypreds.step <- cbind(as.character(test$id),probs.step)
+
+#Write out the predictions to a csv file
+write.table(mypreds, file = "submission_step.csv", row.names=F, col.names=c("id","target"), sep=",")
 
 
 ###### Logistic Regression ######
@@ -32,19 +84,15 @@ sig_vars <- names(sig_vars)[sig_vars == TRUE]
 sig_formula <- as.formula(paste("target ~",sig_vars))
 glm_sig <- glm(formula=sig_formula,data=train,family="binomial")
 probs <- predict(glm, newdata = test, type = "response")
-preds <- rep(0,892816)  # Initialize prediction vector
-preds[probs>0.5] <- 1 # p>0.5 -> 1
-mypreds <- cbind(as.character(test$id),preds)
+mypreds <- cbind(as.character(test$id),probs)
 
 #Write out the predictions to a csv file
 write.table(mypreds, file = "submission1.csv", row.names=F, col.names=c("id","target"), sep=",")
 
-###### Random Forest######
+###### Random Forest ######
 RF1 <- ranger(target~.-id,data=train,write.forest=T)
 predsRF1<-predict(RF1,test)
-preds <- rep(0,892816)  # Initialize prediction vector
-preds[predsRF1$predictions>0.1] <- 1 # p>0.5 -> 1
-mypredsRF1 <- cbind(as.character(test$id),preds)
+mypredsRF1 <- cbind(as.character(test$id),predsRF1$predictions)
 
 #Write out the predictions to a csv file
 write.table(mypredsRF1, file = "submissionRF1.csv", row.names=F, col.names=c("id","target"), sep=",")
