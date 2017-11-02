@@ -3,7 +3,9 @@ Porto Sefuro's Safe Driver Predictions
 
 ## Roles:
 ### Kia
-Data Cleaning, data exploration, initial submission, random forest approach and log reg with step
+Data Cleaning & Data exploration: removing and imputing missing values; make categorical variables factors; balancing samples for computational power reasons
+Initial submission: logistic regression
+Random forest approach and log reg with stepwise
 ### Jenn 
 github coordinator, cross validation, reflection writing
 ### Pragati 
