@@ -13,10 +13,10 @@ Github coordinator; Cross validation; Logistic Regression; Reflection writing
 additional data exploration
 
 ## File Content
-### simplelinearKia
-Data Cleaning; Data exploration; Initial submission; Stepwise Logistic Regression
+### Step Log Reg & Random Forest.R
+Data Cleaning; Data exploration; Initial submission; Stepwise Logistic Regression; Random Forest
 
-### dataexpl_lm_jenn
+### dataexpl_lm_jenn.R
 Logistic Regression; Logistic Regression with k-fold
 
 
