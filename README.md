@@ -1,5 +1,8 @@
 # Safe-Drivers
-Porto Sefuro's Safe Driver Predictions
+Porto Sefuro's Safe Driver Predictions: Competition4 - Group 9 
+
+The best score achieved with our linear model is 0.243.
+The best score achieved with our linear model is 0.250.
 
 ## Roles:
 ### Kia
@@ -16,6 +19,5 @@ Data Cleaning; Data exploration; Initial submission; Stepwise Logistic Regressio
 ### dataexpl_lm_jenn
 Logistic Regression; Logistic Regression with k-fold
 
-### .DSDtore
-Random Forest Approaches
+
 
