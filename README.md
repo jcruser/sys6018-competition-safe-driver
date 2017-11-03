@@ -1,7 +1,7 @@
 # Safe-Drivers
 Porto Sefuro's Safe Driver Predictions: Competition4 - Group 9 
 
-The best score achieved with our linear model (stepwise log reg) is 0.243.
+The best score achieved with our linear model (stepwise log reg) is 0.241.
 The best score achieved with our non- linear model (random forest) is 0.250.
 
 ## Roles:
